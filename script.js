@@ -54,7 +54,7 @@ function loadGeoJSONFromFile(filePath) {
 }
 
 // Load GeoJSON
-loadGeoJSONFromFile('Park/Park_percent.geojson');
+loadGeoJSONFromFile('Park_percent.geojson');
 
 // Highlight a shape
 function highlightShape(layer) {
