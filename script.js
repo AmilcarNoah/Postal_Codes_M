@@ -1,7 +1,7 @@
 // Create the map
 const map = L.map('map', {
   center: [48.1581, 11.5820],
-  zoom: 11.5,
+  zoom: 12,
   minZoom: 7,
   maxZoom: 15
 });
