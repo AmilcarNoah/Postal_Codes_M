@@ -1,0 +1,312 @@
+/* General page styling */
+body {
+  background-color: #1e1e2f;
+  color: #e0e0e0;
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+/* Header styling */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: linear-gradient(90deg, #2a2d3e, #3b3f54);
+  color: #ffda54;
+  text-align: center;
+  padding: 15px;
+  font-size: 26px;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+.header-content {
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+}
+
+/* Main layout wrapper */
+.main-wrapper {
+  display: flex;
+  flex: 1;
+  margin-top: 1px;
+}
+
+/* Map styling */
+#map {
+  flex: 2;
+  height: calc(100vh - 60px);
+  margin: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid #495057;
+}
+
+/* Sidebar styling */
+#sidebar {
+  min-width: 300px;
+  max-width: 400px;
+  height: calc(100vh - 60px);
+  background: linear-gradient(135deg, #2a2d3e, #3b3f54);
+  padding: 25px;
+  border-left: 2px solid rgb(51, 52, 52);
+  border-radius: 0 15px 0 0;
+  box-shadow: -3px 0 15px rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+}
+
+/* Sidebar heading */
+#sidebar h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffda54;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #33ffe7;
+}
+
+/* Combined Visualization Section */
+.combined-visualization {
+  margin-bottom: 25px;
+  padding: 20px;
+  background: #2a2d3e;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease-in-out;
+}
+
+.combined-visualization:hover {
+  transform: scale(1.02);
+}
+
+.combined-visualization canvas {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Infographics Container */
+.infographic-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 25px;
+}
+
+.infographic-section {
+  text-align: center;
+  padding: 20px;
+  background: #2a2d3e;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s;
+}
+
+.infographic-section:hover {
+  transform: translateY(-5px);
+}
+
+/* Infographic content */
+.infographic-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #3b3f54;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.infographic-icon img {
+  width: 80%;
+  height: 80%;
+}
+
+.infographic-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffda54;
+  margin: 15px 0;
+}
+
+.infographic-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #e0e0e0;
+  margin-top: 10px;
+}
+
+/* Modal styling for enlarged chart */
+.chart-modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  position: relative;
+  background-color: #2a2d3e;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+#enlarged-chart {
+  display: block;
+  max-width: 90%;
+  max-height: 90%;
+}
+
+.close-modal {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background-color: transparent;
+  border: none;
+  color: #ffda54;
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.3s ease-in-out;
+}
+
+.close-modal:hover {
+  color: #33ffe7;
+}
+
+/* Legend styling */
+.info.legend {
+  padding: 10px;
+  background: rgba(121, 121, 121, 0.9);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  border-radius: 5px;
+  line-height: 1.5;
+  color: #333;
+}
+
+.info.legend h4 {
+  margin: 0 0 5px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.legend-item {
+  margin: 5px 0;
+  padding: 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-item:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main-wrapper {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  #map {
+    height: calc(100vh - 300px);
+  }
+}
+
+/* Legend Styling */
+.info.legend {
+  background: linear-gradient(135deg, #2a2d3e, #3b3f54); /* Matching sidebar gradient */
+  color: #ffda54; /* Consistent text color */
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5); /* Consistent shadow effect */
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.info.legend h4 {
+  margin-bottom: 10px;
+  color: #ffd333; /* Highlighted heading color */
+  font-size: 18px;
+  text-align: center;
+  border-bottom: 2px solid #ffda54; /* Subtle divider */
+  padding-bottom: 5px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2a2d3e; /* Matching sidebar sections */
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin: 5px 0;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.legend-item:hover {
+  transform: translateY(-3px); /* Lift effect on hover */
+  background: #3b3f54; /* Slightly lighter hover color */
+}
+
+.legend-item span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px; /* Softer corners */
+  border: 1px solid #495057;
+}
+
+#reset-button {
+  background-color: #33ffe7; /* Accent color for the button */
+  color: #1e1e2f;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  font-weight: bold;
+  margin-top: 15px;
+  cursor: pointer;
+  width: 100%; /* Full width button */
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+#reset-button:hover {
+  background-color: #ffda54;
+  transform: scale(1.05); /* Slight scale effect */
+}
