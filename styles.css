@@ -7,7 +7,8 @@ body {
   font-family: 'Roboto', sans-serif;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* Prevent scrolling */
 }
 
 .leaflet-layer,
@@ -17,18 +18,33 @@ body {
   filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
 }
 
+/* Change the Leaflet control layer icon color to light gray */
+.leaflet-control-layers-toggle {
+  background-color: #2a2d3e !important;
+}
+
+.leaflet-control-layers-selector {
+  margin-top: 2px;
+  background-color: #2a2d3e;
+  position: relative;
+  top: 1px;
+}
+
 /* Header styling */
 header {
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 1000;
   background: linear-gradient(90deg, #2a2d3e, #3b3f54);
   color: #ffda54;
   text-align: center;
-  padding: 15px;
+  height: 10%; /* Set height relative to viewport */
   font-size: 26px;
   font-weight: bold;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-content {
@@ -44,29 +60,39 @@ h1 {
   display: flex;
   flex: 1;
   margin-top: 1px;
+  height: 90%;
 }
 
 /* Map styling */
 #map {
   flex: 2;
-  height: calc(100vh - 60px);
+  height: 1005;
   margin: 0;
   overflow: hidden;
   border-radius: 10px;
   border: 2px solid #495057;
 }
 
+
+
 /* Sidebar styling */
 #sidebar {
   min-width: 300px;
   max-width: 400px;
-  height: calc(100vh - 60px);
+  height: 100%;
   background: linear-gradient(135deg, #2a2d3e, #3b3f54);
   padding: 25px;
   border-left: 2px solid rgb(51, 52, 52);
   border-radius: 0 15px 0 0;
   box-shadow: -3px 0 15px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
+}
+
+.sidebar-container {
+  padding: 20px; /* Add padding for spacing */
+  background-color: linear-gradient(135deg, #2a2d3e, #3b3f54); /* Light background color for grouping */
+  border-radius: 8px; /* Rounded corners for a softer look */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
 }
 
 /* Sidebar heading */
@@ -202,55 +228,8 @@ h1 {
 /* Legend styling */
 .info.legend {
   padding: 10px;
-  background: rgba(121, 121, 121, 0.9);
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-  border-radius: 5px;
-  line-height: 1.5;
-  color: #333;
-}
-
-.info.legend h4 {
-  margin: 0 0 5px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-.legend-item {
-  margin: 5px 0;
-  padding: 5px;
-  border-radius: 3px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.legend-item:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .main-wrapper {
-    flex-direction: column;
-  }
-
-  #sidebar {
-    width: 100%;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-
-  #map {
-    height: calc(100vh - 300px);
-  }
-}
-
-/* Legend Styling */
-.info.legend {
   background: linear-gradient(135deg, #2a2d3e, #3b3f54); /* Matching sidebar gradient */
   color: #ffda54; /* Consistent text color */
-  padding: 15px;
   border-radius: 10px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5); /* Consistent shadow effect */
   font-size: 14px;
@@ -291,8 +270,9 @@ h1 {
   border: 1px solid #495057;
 }
 
+/* Reset button */
 #reset-button {
-  background-color: #33ffe7; /* Accent color for the button */
+  background-color: #50556c; /* Accent color for the button */
   color: #1e1e2f;
   border: none;
   border-radius: 8px;
@@ -310,3 +290,140 @@ h1 {
   background-color: #ffda54;
   transform: scale(1.05); /* Slight scale effect */
 }
+
+/* Focus styles for accessibility */
+#reset-button:focus, .close-modal:focus {
+  outline: none;
+  /* box-shadow: 0 0 3px 3px rgba(51, 255, 231, 0.8); Highlight when focused */
+}
+
+/* Smooth transition for modal display */
+.chart-modal {
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, visibility 0s 0.3s;
+  visibility: hidden; /* Hidden by default */
+}
+
+.chart-modal.show {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease;
+}
+
+/*Accordion */
+
+.sidebar-container-1 {
+  max-height: 0; /* Start with a height of 0 */
+  overflow: hidden; /* Hide overflow */
+  transition: max-height 0.5s ease-out; /* Smooth transition */
+}
+
+.accordion {
+  background-color: #3b3f54;
+  color: #1e1e2f;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 15px;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  outline: none;
+  transition: 0.4s;
+  border-radius: 6px;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active, .accordion:hover {
+  background-color: #ffda54;
+  transform: translateY(-3px);
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  transform: scale(1.05);
+  box-shadow: 0 0 3px 3px rgba(51, 255, 231, 0.8);
+}
+
+.accordion:after {
+  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  font-size: 13px;
+  color: #777;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+  padding: 0 18px;
+  background-color: white;
+  display: none;
+  overflow: hidden;
+}
+
+
+/* Custom scrollbar styles */
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #2a2d3e;
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: #3b3f54;
+  border-radius: 10px;
+}
+
+#toggle-legend {
+  background-color: #50556c; /* Accent color for the button */
+  color: #1e1e2f; /* Text color */
+  border: none; /* No border */
+  border-radius: 8px; /* Match border radius */
+  padding: 10px 15px; /* Padding for the button */
+  font-size: 14px; /* Match font size */
+  font-weight: bold; /* Match font weight */
+  margin-top: 15px; /* Match margin */
+  cursor: pointer; /* Pointer cursor on hover */
+  width: 100%; /* Full width button */
+  text-align: center; /* Center text */
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition */
+}
+
+#toggle-legend:hover {
+  background-color: #ffda54; /* Change background color on hover */
+  transform: scale(1.05); /* Slight scale effect */
+}
+
+/* Focus styles for accessibility */
+#toggle-legend:focus {
+  outline: none;
+  /* box-shadow: 0 0 3px 3px rgba(51, 255, 231, 0.8); Highlight when focused */
+}
+
+
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main-wrapper {
+    flex-direction: column;
+  }
+
+  #sidebar {
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  #map {
+    height: calc(100vh - 300px);
+  }
+}
+
+
