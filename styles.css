@@ -85,7 +85,7 @@ h1 {
   border-left: 2px solid rgb(51, 52, 52);
   border-radius: 0 15px 0 0;
   box-shadow: -3px 0 15px rgba(0, 0, 0, 0.5);
-  overflow-y: auto;
+  overflow-y: scroll;
 }
 
 .sidebar-container {
@@ -404,6 +404,64 @@ body::-webkit-scrollbar-thumb {
 #toggle-legend:focus {
   outline: none;
   /* box-shadow: 0 0 3px 3px rgba(51, 255, 231, 0.8); Highlight when focused */
+}
+
+/*Calculator styles*/
+.calculator-container {
+  width: 100%; /* Matches the width of other elements */
+  padding: 20px; /* Optional: Add padding for better spacing */
+  box-sizing: border-box; /* Ensures padding is included in the width */
+}
+select {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+label {
+  display: block;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #edce5f;
+  color: rgb(35, 33, 33);
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+  border-radius: 8px;
+}
+
+button:hover {
+  background-color: #e0b526;
+}
+
+form {
+  padding: 20px;
+  border-radius: 15px;
+  max-width: 100%;
+  margin: auto;
+}
+
+form select{
+  background-color: #50556c;
+}
+
+
+h1, h2 {
+  text-align: center;
+}
+
+p#result {
+  font-size: 18px;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: bold;
 }
 
 
