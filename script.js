@@ -31,10 +31,15 @@ const loadGeoJSON = async (filePath, callback) => {
   }
 };
 
+
 // Load district data
 const loadDistrictData = (geojsonData) => {
   const cafeValues = [];
   const educationValues = [];
+  const healthcareValues = [];
+  const storesValues = [];
+  const hospitalityValues = [];
+  const recreationValues = [];
 
   districtLayer = L.geoJSON(geojsonData, {
     style: feature => ({
@@ -44,33 +49,41 @@ const loadDistrictData = (geojsonData) => {
       fillOpacity: 0.7
     }),
     onEachFeature: (feature, layer) => {
+      // Push values for each category
       cafeValues.push(feature.properties.cafe || 0);
       educationValues.push(feature.properties.education || 0);
+      healthcareValues.push(feature.properties.healthcare_count || 0);
+      storesValues.push(feature.properties.stores_count || 0);
+      hospitalityValues.push(feature.properties.hospitality_count || 0);
+      recreationValues.push(feature.properties.recreation_count || 0);
+
       geojsonNames.push(feature.properties.name || `Unnamed ${geojsonNames.length + 1}`);
 
       layer.on('click', () => {
         highlightShape(layer);
         displayInfographics(feature);
-        
+
         // Capture the postal code from the clicked feature
         const postalCode = feature.properties.plz;
         if (postalCode) {
           // Set the postal code in the calculator form
           document.getElementById('postal_code').value = postalCode;
         }
+
+        // Update the bottom panel with the clicked feature's values
+        updateBottomPanel(feature);
       });
 
       allLayers.push(layer);
     }
   });
-
-  // Set zIndex for district layer to always be below other layers
-  districtLayer.setZIndex(0); // Ensure district layer is always below
-
-  // Add districts layer as a basemap
-  districtLayer.addTo(map);
   updateCombinedChart(cafeValues, educationValues);
+
+  // Add the district layer to the map
+  districtLayer.addTo(map);
 };
+  
+
 
 
 // Load train network data
@@ -172,6 +185,7 @@ const displayInfographics = (feature) => {
   document.getElementById('sidebar').style.display = 'block';
 };
 
+
 // Close the sidebar
 const closeSidebar = () => {
   document.getElementById('sidebar').style.display = 'none';
@@ -195,6 +209,20 @@ for (i = 0; i < acc.length; i++) {
     }
   });
 }
+
+const updateBottomPanel = (feature) => {
+  // Extract values from the feature properties
+  const healthcareCount = feature.properties.healthcare_count || 0;
+  const storesCount = feature.properties.stores_count || 0;
+  const hospitalityCount = feature.properties.hospitality_count || 0;
+  const recreationCount = feature.properties.recreation_count || 0;
+
+  // Update the bottom panel with the extracted values
+  document.getElementById('healthcare-info').textContent = healthcareCount;
+  document.getElementById('stores-info').textContent = storesCount;
+  document.getElementById('hospitality-info').textContent = hospitalityCount;
+  document.getElementById('recreation-info').textContent = recreationCount;
+};
 
 // Update the combined chart
 const updateCombinedChart = (cafeValues, educationValues) => {
@@ -432,9 +460,9 @@ const createLayerControl = () => {
 
 // Load all GeoJSON data
 const loadData = () => {
-  loadGeoJSON('Park/map.geojson', loadDistrictData);
-  loadGeoJSON('Park/Train_network.geojson', loadTrainNetworkLayer);
-  loadGeoJSON('Park/Munich_Bus_Stops.geojson', loadBusStopsLayer);
+  loadGeoJSON('postal_codes_final.geojson', loadDistrictData);
+  loadGeoJSON('Train_network.geojson', loadTrainNetworkLayer);
+  loadGeoJSON('Munich_Bus_Stops.geojson', loadBusStopsLayer);
 };
 
 // Initialize
@@ -473,10 +501,10 @@ let dataset = [];
             };
 
             dataset.forEach(row => {
-                uniqueValues.newlyConst.add(row.newlyConst);
-                uniqueValues.balcony.add(row.balcony);
-                uniqueValues.lift.add(row.lift);
-                uniqueValues.garden.add(row.garden);
+                uniqueValues.newlyConst.add(row.newlyConst == 1 ? "Yes" : "No");
+                uniqueValues.balcony.add(row.balcony == 1 ? "Yes" : "No");
+                uniqueValues.lift.add(row.lift == 1 ? "Yes" : "No");
+                uniqueValues.garden.add(row.garden == 1 ? "Yes" : "No");
                 uniqueValues.serviceCharge.add(row.serviceCharge);
                 uniqueValues.livingSpace.add(row.livingSpace);
                 uniqueValues.noRooms.add(row.noRooms);
@@ -522,15 +550,15 @@ let dataset = [];
             event.preventDefault();
 
             const inputs = {
-                newlyConst: document.getElementById('newlyConst').value,
-                balcony: document.getElementById('balcony').value,
-                lift: document.getElementById('lift').value,
-                garden: document.getElementById('garden').value,
-                serviceCharge: document.getElementById('serviceCharge').value,
-                livingSpace: document.getElementById('livingSpace').value,
-                noRooms: document.getElementById('noRooms').value,
-                postal_code: document.getElementById('postal_code').value
-            };
+              newlyConst: document.getElementById('newlyConst').value === "Yes" ? 1 : 0,
+              balcony: document.getElementById('balcony').value === "Yes" ? 1 : 0,
+              lift: document.getElementById('lift').value === "Yes" ? 1 : 0,
+              garden: document.getElementById('garden').value === "Yes" ? 1 : 0,
+              serviceCharge: document.getElementById('serviceCharge').value,
+              livingSpace: document.getElementById('livingSpace').value,
+              noRooms: document.getElementById('noRooms').value,
+              postal_code: document.getElementById('postal_code').value
+          };
 
             const result = calculateBaseRent(inputs);
             document.getElementById('result').textContent = result;
@@ -549,37 +577,31 @@ postalCodeInput.addEventListener('change', () => {
 });
 
 // Function to highlight shape by postal code
+// Function to highlight shape by postal code
 const highlightShapeByPostalCode = (postalCode) => {
-  console.log('Searching for postal code:', postalCode); // Debugging
-  if (!postalCode) {
-    console.warn('Postal code input is empty.');
+  // Check if allLayers is populated
+  if (!allLayers || allLayers.length === 0) {
+    console.warn('No layers available to search.');
     return;
   }
 
-  const matchingLayer = allLayers?.find(layer => {
-    console.log('Checking layer with postal code:', layer.feature.properties.plz); // Debugging
-    return layer.feature.properties.plz === postalCode;
+  // Find the matching layer by postal code
+  const matchingLayer = allLayers.find(layer => {
+    const feature = layer.feature;
+    return feature && feature.properties && String(feature.properties.plz).trim() === String(postalCode).trim();
   });
 
+  // Highlight the matching layer if found
   if (matchingLayer) {
-    console.log('Matching layer found:', matchingLayer); // Debugging
     highlightShape(matchingLayer);
-    displayInfographics(matchingLayer.feature);
   } else {
     console.warn(`No district found with postal code: ${postalCode}`);
   }
 };
-// Layer click event handler
-layer.on('click', (e) => {
-  const clickedLayer = e.target;
-  const feature = clickedLayer.feature;
 
-  highlightShape(clickedLayer);
-  displayInfographics(feature);
-
-  // Capture the postal code from the clicked feature
-  const postalCode = feature.properties.plz;
-  if (postalCode) {
-    postalCodeInput.value = postalCode;
-  }
-});
+function populateBottomPanel(data) {
+  document.getElementById('healthcare-info').textContent = data.healthcare_count || 'No data';
+  document.getElementById('stores-info').textContent = data.stores_count || 'No data';
+  document.getElementById('hospitality-info').textContent = data.hospitality_count || 'No data';
+  document.getElementById('recreation-info').textContent = data.recreation_count || 'No data';
+}
