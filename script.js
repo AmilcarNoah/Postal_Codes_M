@@ -480,15 +480,15 @@ const createLegend = () => {
         </div>
         <h5 id="transport-heading" style="display: none;">Transport Stops/Stations</h5>
         <div class="transport-symbol" data-stop-type="bus_stop" style="display: none;">
-          <img src="Symbols/bus_stop.png" alt="Bus Stop" style="width: 20px; height: 20px;">
+          <img src="bus_stop.png" alt="Bus Stop" style="width: 20px; height: 20px;">
           <span style="float: right;">Bus Stops</span>
         </div>
         <div class="transport-symbol" data-stop-type="tram_stop" style="display: none;">
-          <img src="Symbols/tram_stop.png" alt="Tram Stop" style="width: 20px; height: 20px;">
+          <img src="tram_stop.png" alt="Tram Stop" style="width: 20px; height: 20px;">
           <span style="float: right;">Tram Stops</span>
         </div>
         <div class="transport-symbol" data-stop-type="train_station" style="display: none;">
-          <img src="Symbols/train_station.png" alt="Train Station" style="width: 20px; height: 20px;">
+          <img src="train_station.png" alt="Train Station" style="width: 20px; height: 20px;">
           <span style="float: right;">Train Stations</span>
         </div>
         
