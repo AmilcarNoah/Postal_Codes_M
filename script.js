@@ -194,9 +194,9 @@ const loadBusStopsLayer = (geojsonData) => {
 // Get icon URL based on stop type
 const getIconUrl = (stopType) => {
   switch (stopType) {
-    case 'bus_stop': return 'Symbols/bus_stop.png';
-    case 'tram_stop': return 'Symbols/tram_stop.png';
-    case 'railway_station': return 'Symbols/train_station.png';
+    case 'bus_stop': return 'bus_stop.png';
+    case 'tram_stop': return 'tram_stop.png';
+    case 'railway_station': return 'train_station.png';
     // default: return 'Symbols/default_stop.png';
   }
 };
