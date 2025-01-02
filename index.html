@@ -5,10 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Facilities Dashboard</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 </head>
 <body>
   <header>
@@ -58,64 +61,67 @@
 
     </div>
     <div id="sidebar">
-      <button class="accordion">Facilities</button>
+      <button class="accordion">Total Facilities</button>
       <div class="sidebar-container-1" > <!-- New container for grouping -->    
         <div class="combined-visualization">
           <h2>Facilities per Area</h2>
           <canvas id="combined-chart" width="1600" height="800"></canvas>
         </div>
-        
-        <div class="infographic-container">
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/coffee_icon-icons.com_50414.png" alt="Cafe Icon">
-            </div>
-            <div class="infographic-title">Cafe</div>
-            <div class="infographic-value" id="cafe-info">No data</div>
-          </div>
-          
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://w7.pngwing.com/pngs/310/448/png-transparent-study-skills-education-learning-computer-icons-sc-logo-angle-hat-teacher.png" alt="Education Icon">
-            </div>
-            <div class="infographic-title">Education</div>
-            <div class="infographic-value" id="education-info">No data</div>
-          </div>
+      </div>
 
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/health_icon-icons.com_50412.png" alt="Healthcare Icon">
-            </div>
-            <div class="infographic-title">Healthcare</div>
-            <div class="infographic-value" id="healthcare-info">No data</div>
-          </div>
-          
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/shop_icon-icons.com_50413.png" alt="Stores Icon">
-            </div>
-            <div class="infographic-title">Stores</div>
-            <div class="infographic-value" id="stores-info">No data</div>
-          </div>
-          
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/hotel_icon-icons.com_50415.png" alt="Hospitality Icon">
-            </div>
-            <div class="infographic-title">Hospitality</div>
-            <div class="infographic-value" id="hospitality-info">No data</div>
-          </div>
-          
-          <div class="infographic-section">
-            <div class="infographic-icon">
-              <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/park_icon-icons.com_50416.png" alt="Recreation Icon">
-            </div>
-            <div class="infographic-title">Recreation</div>
-            <div class="infographic-value" id="recreation-info">No data</div>
-          </div>
+        <button class="accordion">Facilities per Postal Code</button>
+        <div class="sidebar-container-1" >
+          <div class="infographic-container">
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/coffee_icon-icons.com_50414.png" alt="Cafe Icon">
+                </div>
+                <div class="infographic-title">Eateries</div>
+                <div class="infographic-value" id="cafe-info">No data</div>
+              </div>
+              
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://w7.pngwing.com/pngs/310/448/png-transparent-study-skills-education-learning-computer-icons-sc-logo-angle-hat-teacher.png" alt="Education Icon">
+                </div>
+                <div class="infographic-title">Education</div>
+                <div class="infographic-value" id="education-info">No data</div>
+              </div>
 
-        </div>
-      </div> <!-- End of new container -->
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/health_icon-icons.com_50412.png" alt="Healthcare Icon">
+                </div>
+                <div class="infographic-title">Healthcare</div>
+                <div class="infographic-value" id="healthcare-info">No data</div>
+              </div>
+              
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/shop_icon-icons.com_50413.png" alt="Stores Icon">
+                </div>
+                <div class="infographic-title">Stores</div>
+                <div class="infographic-value" id="stores-info">No data</div>
+              </div>
+              
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/hotel_icon-icons.com_50415.png" alt="Hospitality Icon">
+                </div>
+                <div class="infographic-title">Hospitality</div>
+                <div class="infographic-value" id="hospitality-info">No data</div>
+              </div>
+              
+              <div class="infographic-section">
+                <div class="infographic-icon">
+                  <img src="https://cdn.icon-icons.com/icons2/510/PNG/512/park_icon-icons.com_50416.png" alt="Recreation Icon">
+                </div>
+                <div class="infographic-title">Recreation</div>
+                <div class="infographic-value" id="recreation-info">No data</div>
+              </div>
+
+          </div>
+        </div> <!-- End of new container -->
       <button class="accordion">Calculator</button>
       <div class="sidebar-container-1" >
         <div class="calculator-container">
