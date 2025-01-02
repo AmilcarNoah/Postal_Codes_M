@@ -1,12 +1,13 @@
 // Initialize the map
 const map = L.map('map', {
-  center: [48.1581, 11.5820],
-  zoom: 11,
+  center: [48.1552, 11.5650],
+  zoom: 11.60,
   minZoom: 7,
-  maxZoom: 18
+  maxZoom: 19,
+  zoomSnap: 0.05
 });
 
-// Add a tile layer for the base map (background map)
+// Add a tile layer for the base map
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
@@ -17,9 +18,73 @@ let allLayers = [];
 let geojsonNames = [];
 let trainLayer = null;
 let busStopsLayer = null;
-let districtLayer = null; // New variable to hold the district layer
+let districtLayer = null;
+// Color scale function for cluster sizes
+const getClusterColor = (count) => {
+  return count > 50 ? '#8c2d04' :
+         count > 20 ? '#d94801' :
+         count > 10 ? '#f16913' :
+         count > 5 ? '#fd8d3c' :
+         count > 2 ? '#fdae6b' :
+         '#feedde';
+};
 
-// Fetch and process GeoJSON data for districts, train network, and bus stops
+const markerCluster = L.markerClusterGroup({
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: true,
+  zoomToBoundsOnClick: true,
+  maxClusterRadius: (zoom) => {
+    // Adjust cluster radius based on zoom level
+    return zoom < 12 ? 80 : 
+           zoom < 14 ? 60 : 
+           zoom < 16 ? 40 : 30;
+  },
+  spiderfyDistanceMultiplier: 1.5,
+  disableClusteringAtZoom: 16,
+  iconCreateFunction: function(cluster) {
+    const childMarkers = cluster.getAllChildMarkers();
+    const types = new Set(childMarkers.map(marker => marker.feature.properties.fclass));
+    const count = cluster.getChildCount();
+    
+    // Determine cluster icon based on contained stop types
+    let iconUrl = 'default_stop.png';
+    if (types.has('railway_station')) {
+      iconUrl = 'train_station.png';
+    } else if (types.has('tram_stop')) {
+      iconUrl = 'tram_stop.png';
+    } else if (types.has('bus_stop')) {
+      iconUrl = 'bus_stop.png';
+    }
+
+    const size = Math.min(40 + (count * 2), 60); // Dynamic size based on count
+    const color = getClusterColor(count);
+
+    return L.divIcon({
+      html: `<div class="cluster-icon" style="
+              background-image: url(${iconUrl});
+              background-color: ${color};
+              border: 2px solid ${count > 10 ? '#333' : '#666'};
+              border-radius: 50%;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <span style="
+                color: ${count > 10 ? '#fff' : '#333'};
+                font-weight: bold;
+                font-size: ${Math.min(14 + count/2, 18)}px;
+                text-shadow: ${count > 10 ? '0 1px 1px rgba(0,0,0,0.3)' : '0 1px 1px rgba(255,255,255,0.5)'};
+              ">${count}</span>
+            </div>`,
+      className: 'marker-cluster',
+      iconSize: L.point(size + 10, size + 10), // Increased size
+      iconAnchor: [(size + 10)/2, (size + 10)/2]
+    });
+  }
+});
+
+// Fetch and process GeoJSON data
 const loadGeoJSON = async (filePath, callback) => {
   try {
     const response = await fetch(filePath);
@@ -31,15 +96,16 @@ const loadGeoJSON = async (filePath, callback) => {
   }
 };
 
-
 // Load district data
 const loadDistrictData = (geojsonData) => {
-  const cafeValues = [];
-  const educationValues = [];
-  const healthcareValues = [];
-  const storesValues = [];
-  const hospitalityValues = [];
-  const recreationValues = [];
+  const categoryValues = {
+    cafe: [],
+    education: [],
+    healthcare: [],
+    stores: [],
+    hospitality: [],
+    recreation: []
+  };
 
   districtLayer = L.geoJSON(geojsonData, {
     style: feature => ({
@@ -49,46 +115,29 @@ const loadDistrictData = (geojsonData) => {
       fillOpacity: 0.7
     }),
     onEachFeature: (feature, layer) => {
-      // Push values for each category
-      cafeValues.push(feature.properties.cafe || 0);
-      educationValues.push(feature.properties.education || 0);
-      healthcareValues.push(feature.properties.healthcare_count || 0);
-      storesValues.push(feature.properties.stores_count || 0);
-      hospitalityValues.push(feature.properties.hospitality_count || 0);
-      recreationValues.push(feature.properties.recreation_count || 0);
+      Object.keys(categoryValues).forEach(category => {
+        categoryValues[category].push(feature.properties[category] || 0);
+      });
 
       geojsonNames.push(feature.properties.name || `Unnamed ${geojsonNames.length + 1}`);
 
       layer.on('click', () => {
         highlightShape(layer);
         displayInfographics(feature);
-
-        // Capture the postal code from the clicked feature
-        const postalCode = feature.properties.plz;
-        if (postalCode) {
-          // Set the postal code in the calculator form
-          document.getElementById('postal_code').value = postalCode;
-        }
-
-        // Update the bottom panel with the clicked feature's values
         updateBottomPanel(feature);
+        updatePostalCodeInput(feature.properties.plz);
       });
 
       allLayers.push(layer);
     }
   });
-  updateCombinedChart(cafeValues, educationValues);
 
-  // Add the district layer to the map
+  updateCombinedChart(categoryValues.cafe, categoryValues.education);
   districtLayer.addTo(map);
 };
-  
-
-
 
 // Load train network data
 const loadTrainNetworkLayer = (geojsonData) => {
-  // Create the train layer
   trainLayer = L.geoJSON(geojsonData, {
     style: () => ({
       color: '#fc2680',
@@ -98,53 +147,135 @@ const loadTrainNetworkLayer = (geojsonData) => {
     })
   });
 
-  // Check if the trainLayer was successfully created
   if (trainLayer) {
-    // Set the zIndex after the layer is created
-    trainLayer.setZIndex(1); // Ensure the train network is above district layer
-
-    // Do not add the layer to the map here
-    // trainLayer.addTo(map); // This line is removed
+    trainLayer.setZIndex(1);
+    createLayerControl();
   } else {
     console.error('Failed to create the train network layer');
   }
-
-  createLayerControl(); // Create the layer control after the layer is created
 };
-
 
 // Load bus stops data
 const loadBusStopsLayer = (geojsonData) => {
   busStopsLayer = L.geoJSON(geojsonData, {
-    style: { weight: 1, opacity: 0.8 },
-    pointToLayer: (feature, latlng) => L.marker(latlng, {
-      icon: L.icon({
-        iconUrl: 'Symbols/bus_stop.png',
-        iconSize: [25, 25],
-        iconAnchor: [12, 25],
-        popupAnchor: [0, -25]
-      })
-    })
+    pointToLayer: (feature, latlng) => {
+      const iconUrl = getIconUrl(feature.properties.fclass);
+      const marker = L.marker(latlng, {
+        icon: L.icon({
+          iconUrl: iconUrl,
+          iconSize: [20, 20],
+          iconAnchor: [10, 20],
+          popupAnchor: [0, -20]
+        }),
+        feature: feature // Store feature data on marker
+      });
+      
+      // Add popup with stop information
+      marker.bindPopup(`<b>${feature.properties.name || 'Transport Stop'}</b><br>
+                        Type: ${feature.properties.fclass.replace('_', ' ')}`);
+      
+      // Add marker to the cluster group
+      markerCluster.addLayer(marker);
+      return marker;
+    }
   });
 
-  // Check if busStopsLayer is created successfully
   if (busStopsLayer) {
-    // Set zIndex for bus stops layer to be above district layer
-    busStopsLayer.setZIndex(2); // Ensure bus stops are above district layer
-
+    busStopsLayer.addTo(markerCluster); // Add the layer to the cluster group
+    busStopsLayer.setZIndex(2);
     createLayerControl();
-    setBusStopsLayerVisibility(map.getZoom());
+    setBusStopsLayerVisibility(map.getZoom()); // Call setBusStopsLayerVisibility when map is initialized
     map.on('zoomend', () => setBusStopsLayerVisibility(map.getZoom()));
   } else {
     console.error("Bus stops layer could not be created.");
   }
 };
 
-// Set visibility of bus stops layer based on zoom level
-const setBusStopsLayerVisibility = (zoomLevel) => {
-  const isVisible = zoomLevel >= 17 && zoomLevel <= 18;
-  enableBusStopsToggle(isVisible);
+// Get icon URL based on stop type
+const getIconUrl = (stopType) => {
+  switch (stopType) {
+    case 'bus_stop': return 'Symbols/bus_stop.png';
+    case 'tram_stop': return 'Symbols/tram_stop.png';
+    case 'railway_station': return 'Symbols/train_station.png';
+    // default: return 'Symbols/default_stop.png';
+  }
 };
+// Global constants for stop types and zoom levels
+const STOP_TYPES = {
+  TRAIN_STATION: 'railway_station',
+  TRAM_STOP: 'tram_stop',
+  BUS_STOP: 'bus_stop',
+  DEFAULT_STOP: 'default_stop'        //not in use
+};
+
+const ZOOM_LEVELS = {
+  [STOP_TYPES.TRAIN_STATION]: 11,
+  [STOP_TYPES.TRAM_STOP]: 11,     
+  [STOP_TYPES.BUS_STOP]: 11,   
+  [STOP_TYPES.DEFAULT_STOP]: 16     //not in use
+};
+
+// Function to set bus stops layer visibility
+const setBusStopsLayerVisibility = (zoomLevel) => {
+  if (!busStopsLayer || !map.hasLayer(markerCluster)) {
+    console.warn('Bus stops layer is not initialized or visible.');
+    return;
+  }
+
+  const busStops = busStopsLayer.getLayers();
+  if (!busStops || busStops.length === 0) {
+    console.warn('No bus stops found in the layer.');
+    return;
+  }
+
+  // Adjust cluster settings based on zoom level
+  if (zoomLevel < 12) {
+    markerCluster.options.maxClusterRadius = 100;
+    markerCluster.options.disableClusteringAtZoom = 16;
+  } else if (zoomLevel < 14) {
+    markerCluster.options.maxClusterRadius = 80;
+    markerCluster.options.disableClusteringAtZoom = 18;
+  } else {
+    markerCluster.options.maxClusterRadius = 60;
+    markerCluster.options.disableClusteringAtZoom = 20;
+  }
+
+  busStops.forEach(stop => {
+    const stopType = stop.feature?.properties?.fclass || STOP_TYPES.DEFAULT_STOP;
+
+    let isVisible = true;
+    switch (stopType) {
+      case STOP_TYPES.TRAIN_STATION:
+        isVisible = zoomLevel >= ZOOM_LEVELS[STOP_TYPES.TRAIN_STATION];
+        break;
+      case STOP_TYPES.TRAM_STOP:
+        isVisible = zoomLevel >= ZOOM_LEVELS[STOP_TYPES.TRAM_STOP];
+        break;
+      case STOP_TYPES.BUS_STOP:
+        isVisible = zoomLevel >= ZOOM_LEVELS[STOP_TYPES.BUS_STOP];
+        break;
+      default:
+        isVisible = zoomLevel >= ZOOM_LEVELS[STOP_TYPES.DEFAULT_STOP];
+        break;
+    }
+
+    if (isVisible) {
+      markerCluster.addLayer(stop);
+    } else {
+      markerCluster.removeLayer(stop);
+    }
+  });
+
+  // Refresh clusters after visibility changes
+  markerCluster.refreshClusters();
+  console.debug(`Updated visibility for ${busStops.length} stops at zoom level ${zoomLevel}.`);
+};
+
+map.on('zoomend', () => {
+  if (busStopsLayer && map.hasLayer(busStopsLayer)) {
+    setBusStopsLayerVisibility(map.getZoom());
+  }
+});
 
 // Enable or disable bus stops toggle
 const enableBusStopsToggle = (enable) => {
@@ -175,9 +306,6 @@ const highlightShape = (layer) => {
   highlightedLayer = layer;
 };
 
-let selectedLayer = null;
-
-
 // Display infographics in the sidebar
 const displayInfographics = (feature) => {
   document.getElementById('cafe-info').innerText = feature.properties.cafe || 'No data';
@@ -185,39 +313,45 @@ const displayInfographics = (feature) => {
   document.getElementById('sidebar').style.display = 'block';
 };
 
+// Update postal code input
+const updatePostalCodeInput = (postalCode) => {
+  if (postalCode) {
+    document.getElementById('postal_code').value = postalCode;
+  }
+};
 
 // Close the sidebar
 const closeSidebar = () => {
   document.getElementById('sidebar').style.display = 'none';
 };
 
+// Accordion functionality
+const initializeAccordion = () => {
+  const acc = document.getElementsByClassName("accordion");
+  for (let i = 0; i < acc.length; i++) {
+    acc[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      const panel = this.nextElementSibling;
+      panel.style.maxHeight = panel.style.maxHeight ? null : panel.scrollHeight + "px";
 
-//////Accordion
+      // Automatically scroll to the calculator accordion if the first two are expanded
+      if (i === 0 || i === 1) {
+        const calculatorAccordion = document.querySelector('.accordion.calculator');
+        if (calculatorAccordion) {
+          calculatorAccordion.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    });
+  }
+};
 
-var acc = document.getElementsByClassName("accordion");
-var i;
-
-for (i = 0; i < acc.length; i++) {
-  acc[i].addEventListener("click", function() {
-    this.classList.toggle("active");
-
-    var panel = this.nextElementSibling;
-    if (panel.style.maxHeight) {
-      panel.style.maxHeight = null; // Collapse the panel
-    } else {
-      panel.style.maxHeight = panel.scrollHeight + "px"; // Expand the panel
-    }
-  });
-}
-
+// Update the bottom panel
 const updateBottomPanel = (feature) => {
-  // Extract values from the feature properties
   const healthcareCount = feature.properties.healthcare_count || 0;
   const storesCount = feature.properties.stores_count || 0;
   const hospitalityCount = feature.properties.hospitality_count || 0;
   const recreationCount = feature.properties.recreation_count || 0;
 
-  // Update the bottom panel with the extracted values
   document.getElementById('healthcare-info').textContent = healthcareCount;
   document.getElementById('stores-info').textContent = storesCount;
   document.getElementById('hospitality-info').textContent = hospitalityCount;
@@ -269,7 +403,7 @@ const updateCombinedChart = (cafeValues, educationValues) => {
         },
         y: {
           beginAtZero: true,
-          ticks: { color: '#f8f9fa' }
+          ticks: { color: '#f8f9fa'}
         }
       }
     }
@@ -336,12 +470,28 @@ const createLegend = () => {
     const div = L.DomUtil.create('div', 'info legend');
     div.innerHTML = `
       <h4>Legend</h4>
-      <h5 id="percentage-info" style="display: none;">Percentage of District<br> covered by Parks (%)</h5>
+      <h5 id="percentage-info" style="display: none;">Postal Code Area(Percentage of Area<br> covered by Parks (%))</h5>
       <div id="legend-content" style="display: none;"></div>
       <div class="legend-symbols" style="display: none;">
-      
-        <div><span class="train-line" style="background-color: #fc2680;"></span><span style="float: right;">Train Network</span></div>
-        <div><img src="Symbols/bus_stop.png" alt="Bus Stop" style="width: 20px; height: 20px;">  <span style="float: right;">Bus Stops</span></div>
+        <h5 id="train-heading" style="display: none;">Train Network</h5>
+        <div id="train-symbol" style="display: none;">
+          <span class="train-line"></span>
+          <span style="float: right;">Train Network</span>
+        </div>
+        <h5 id="transport-heading" style="display: none;">Transport Stops/Stations</h5>
+        <div class="transport-symbol" data-stop-type="bus_stop" style="display: none;">
+          <img src="Symbols/bus_stop.png" alt="Bus Stop" style="width: 20px; height: 20px;">
+          <span style="float: right;">Bus Stops</span>
+        </div>
+        <div class="transport-symbol" data-stop-type="tram_stop" style="display: none;">
+          <img src="Symbols/tram_stop.png" alt="Tram Stop" style="width: 20px; height: 20px;">
+          <span style="float: right;">Tram Stops</span>
+        </div>
+        <div class="transport-symbol" data-stop-type="train_station" style="display: none;">
+          <img src="Symbols/train_station.png" alt="Train Station" style="width: 20px; height: 20px;">
+          <span style="float: right;">Train Stations</span>
+        </div>
+        
       </div>
       <button id="reset-button" style="display: none;">Reset</button>
       <button id="toggle-legend">Expand</button>
@@ -364,14 +514,14 @@ const createLegend = () => {
     if (legendContent.style.display === 'none') {
       legendContent.style.display = 'block';
       legendSymbols.style.display = 'block';
-      resetButton.style.display = 'inline-block'; // Show reset button when expanded
-      percentageInfo.style.display = 'block'; // Show percentage info when expanded
+      resetButton.style.display = 'inline-block';
+      percentageInfo.style.display = 'block';
       button.innerText = 'Collapse';
     } else {
       legendContent.style.display = 'none';
       legendSymbols.style.display = 'none';
-      resetButton.style.display = 'none'; // Hide reset button when collapsed
-      percentageInfo.style.display = 'none'; // Hide percentage info when collapsed
+ resetButton.style.display = 'none';
+      percentageInfo.style.display = 'none';
       button.innerText = 'Expand';
     }
   });
@@ -432,140 +582,213 @@ const resetLayers = () => {
     }
   });
 
-  // Remove bus stops and train layers if they are currently on the map
+  // Remove all transport-related layers
   if (trainLayer && map.hasLayer(trainLayer)) {
     map.removeLayer(trainLayer);
   }
   if (busStopsLayer && map.hasLayer(busStopsLayer)) {
     map.removeLayer(busStopsLayer);
   }
+  if (markerCluster && map.hasLayer(markerCluster)) {
+    map.removeLayer(markerCluster);
+  }
 
-  // Ensure the district layer is always on the map and below others
   if (districtLayer) {
     if (!map.hasLayer(districtLayer)) {
       map.addLayer(districtLayer);
     }
-    districtLayer.setZIndex(0); // Ensure it's below other layers
+    districtLayer.setZIndex(0);
   }
 
-  // Reapply the correct layer stack after reset
   map.getPanes().overlayPane.appendChild(map.getPanes().overlayPane.firstChild);
+  
+  // Recenter and reset zoom
+  map.setView([48.1552, 11.5650], 11.60);
+  
+  // Update transport symbols visibility in legend
+  toggleTransportSymbolsVisibility(false);
+  updateLegendVisibility(false, 'transport');
 };
-
+11.565
 // Create the layer control
 const createLayerControl = () => {
-  const overlayMaps = { "Train Network": trainLayer, "Bus Stops": busStopsLayer };
-  L.control.layers(null, overlayMaps).addTo(map);
+  const overlayMaps = {
+    "Train Network": trainLayer,
+    // "Transport Stops/Stations": busStopsLayer  // original layer
+    "Transport Stops/Stations": markerCluster
+  };
+
+  const layerControl = L.control.layers(null, overlayMaps).addTo(map);
+
+  map.on('overlayadd overlayremove', (event) => {
+    const isVisible = event.type === 'overlayadd';
+    if (event.name === "Transport Stops/Stations") {
+      if (isVisible) {
+        map.addLayer(markerCluster);
+        setBusStopsLayerVisibility(map.getZoom());
+      } else {
+        map.removeLayer(markerCluster);
+      }
+      toggleTransportSymbolsVisibility(isVisible);
+      updateLegendVisibility(isVisible, 'transport');
+    }
+    if (event.name === "Train Network") {
+      toggleTrainSymbolVisibility(isVisible);
+      updateLegendVisibility(isVisible, 'train');
+    }
+  });
+};
+
+// Update Legend with Active Layers
+const updateLegendVisibility = (isVisible, type) => {
+  const heading = type === 'train' ? document.getElementById('train-heading') : document.getElementById('transport-heading');
+  const symbol = type === 'train' ? document.getElementById('train-symbol') : document.querySelector('.transport-symbol[data-stop-type="bus_stop"]');
+
+  if (heading && symbol) {
+    heading.style.display = isVisible ? 'block' : 'none';
+    symbol.style.display = isVisible ? 'block' : 'none';
+  }
+};
+
+const toggleTransportSymbolsVisibility = (isVisible) => {
+  const transportSymbols = document.querySelectorAll('.transport-symbol');
+  const transportHeading = document.querySelector('.legend-symbols h5:nth-of-type(2)'); // Select the second <h5> in the legend-symbols div
+
+  transportSymbols.forEach(symbol => {
+    symbol.style.display = isVisible ? 'block' : 'none';
+  });
+  if (transportHeading) {
+    transportHeading.style.display = isVisible ? 'block' : 'none';
+  }
+};
+
+const toggleTrainSymbolVisibility = (isVisible) => {
+  const trainSymbol = document.querySelector('.train-line');
+  const trainHeading = document.querySelector('.legend-symbols h5:first-of-type'); // Select the first <h5> in the legend-symbols div
+
+  if (trainSymbol) {
+    trainSymbol.style.display = isVisible ? 'inline-block' : 'none';
+  }
+  if (trainHeading) {
+    trainHeading.style.display = isVisible ? 'block' : 'none';
+  }
 };
 
 // Load all GeoJSON data
 const loadData = () => {
   loadGeoJSON('postal_codes_final.geojson', loadDistrictData);
   loadGeoJSON('Train_network.geojson', loadTrainNetworkLayer);
-  loadGeoJSON('Munich_Bus_Stops.geojson', loadBusStopsLayer);
+  loadGeoJSON('Transport.geojson.geojson', loadBusStopsLayer);
 };
 
 // Initialize
 loadData();
 createLegend();
+initializeAccordion();
+// Hide the train network symbol initially if the layer is not visible
+if (trainLayer && !map.hasLayer(trainLayer)) {
+  toggleTrainSymbolVisibility(false);
+}
+if (busStopsLayer && !map.hasLayer(busStopsLayer)) {
+  toggleTransportSymbolsVisibility(false);
+}
 
 // Calculator Set
 let dataset = [];
 
-        // Fetch and load the CSV file directly from the server
-        function loadCSV() {
-            fetch('df_calculator.csv')
-                .then(response => response.text())
-                .then(csvData => {
-                    dataset = Papa.parse(csvData, { header: true, skipEmptyLines: true }).data;
-                    populateDropdowns();
-                })
-                .catch(error => {
-                    console.error('Error loading CSV file:', error);
-                });
-        }
+// Fetch and load the CSV file directly from the server
+function loadCSV() {
+  fetch('df_calculator.csv')
+    .then(response => response.text())
+    .then(csvData => {
+      dataset = Papa.parse(csvData, { header: true, skipEmptyLines: true }).data;
+      populateDropdowns();
+    })
+    .catch(error => {
+      console.error('Error loading CSV file:', error);
+    });
+}
 
-        // Populate dropdowns with unique values from the dataset
-        function populateDropdowns() {
-            if (dataset.length === 0) return;
+// Populate dropdowns with unique values from the dataset
+function populateDropdowns() {
+  if (dataset.length === 0) return;
 
-            const uniqueValues = {
-                newlyConst: new Set(),
-                balcony: new Set(),
-                lift: new Set(),
-                garden: new Set(),
-                serviceCharge: new Set(),
-                livingSpace: new Set(),
-                noRooms: new Set(),
-                postal_code: new Set()
-            };
+  const uniqueValues = {
+    newlyConst: new Set(),
+    balcony: new Set(),
+    lift: new Set(),
+    garden: new Set(),
+    serviceCharge: new Set(),
+    livingSpace: new Set(),
+    noRooms: new Set(),
+    postal_code: new Set()
+  };
 
-            dataset.forEach(row => {
-                uniqueValues.newlyConst.add(row.newlyConst == 1 ? "Yes" : "No");
-                uniqueValues.balcony.add(row.balcony == 1 ? "Yes" : "No");
-                uniqueValues.lift.add(row.lift == 1 ? "Yes" : "No");
-                uniqueValues.garden.add(row.garden == 1 ? "Yes" : "No");
-                uniqueValues.serviceCharge.add(row.serviceCharge);
-                uniqueValues.livingSpace.add(row.livingSpace);
-                uniqueValues.noRooms.add(row.noRooms);
-                uniqueValues.postal_code.add(row.postal_code);
-            });
+  dataset.forEach(row => {
+    uniqueValues.newlyConst.add(row.newlyConst == 1 ? "Yes" : "No");
+    uniqueValues.balcony.add(row.balcony == 1 ? "Yes" : "No");
+    uniqueValues.lift.add(row.lift == 1 ? "Yes" : "No");
+    uniqueValues.garden.add(row.garden == 1 ? "Yes" : "No");
+    uniqueValues.serviceCharge.add(row.serviceCharge);
+    uniqueValues.livingSpace.add(row.livingSpace);
+    uniqueValues.noRooms.add(row.noRooms);
+    uniqueValues.postal_code.add(row.postal_code);
+  });
 
-            for (const [key, values] of Object.entries(uniqueValues)) {
-                const selectElement = document.getElementById(key);
-                Array.from(values).sort().forEach(value => {
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = value;
-                    selectElement.appendChild(option);
-                });
-            }
-        }
+  for (const [key, values] of Object.entries(uniqueValues)) {
+    const selectElement = document.getElementById(key);
+    Array.from(values).sort().forEach(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value;
+      selectElement.appendChild(option);
+    });
+  }
+}
 
-        function calculateBaseRent(inputs) {
-            const { newlyConst, balcony, lift, garden, serviceCharge, livingSpace, noRooms, postal_code } = inputs;
+function calculateBaseRent(inputs) {
+  const { newlyConst, balcony, lift, garden, serviceCharge, livingSpace, noRooms, postal_code } = inputs;
 
-            const matchingRows = dataset.filter(row =>
-                row.newlyConst == newlyConst &&
-                row.balcony == balcony &&
-                row.lift == lift &&
-                row.garden == garden &&
-                row.serviceCharge == serviceCharge &&
-                row.livingSpace == livingSpace &&
-                row.noRooms == noRooms &&
-                row.postal_code == postal_code
-            );
+  const matchingRows = dataset.filter(row =>
+    row.newlyConst == newlyConst &&
+    row.balcony == balcony &&
+    row.lift == lift &&
+    row.garden == garden &&
+    row.serviceCharge == serviceCharge &&
+    row.livingSpace == livingSpace &&
+    row.noRooms == noRooms &&
+    row.postal_code == postal_code
+  );
 
-            if (matchingRows.length === 0) {
-                return "No matches found.";
-            }
+  if (matchingRows.length === 0) {
+    return "No matches found.";
+  }
 
-            const totalBaseRent = matchingRows.reduce((sum, row) => sum + parseFloat(row.baseRent), 0);
-            const averageBaseRent = totalBaseRent / matchingRows.length;
+  const totalBaseRent = matchingRows.reduce((sum, row) => sum + parseFloat(row.baseRent), 0);
+  const averageBaseRent = totalBaseRent / matchingRows.length;
 
-            return `Average Base Rent: ${averageBaseRent.toFixed(2)}`;
-        }
+  return `Average Base Rent: ${averageBaseRent.toFixed(2)}`;
+}
 
-        function handleCalculate(event) {
-            event.preventDefault();
+function handleCalculate(event) {
+  event.preventDefault();
 
-            const inputs = {
-              newlyConst: document.getElementById('newlyConst').value === "Yes" ? 1 : 0,
-              balcony: document.getElementById('balcony').value === "Yes" ? 1 : 0,
-              lift: document.getElementById('lift').value === "Yes" ? 1 : 0,
-              garden: document.getElementById('garden').value === "Yes" ? 1 : 0,
-              serviceCharge: document.getElementById('serviceCharge').value,
-              livingSpace: document.getElementById('livingSpace').value,
-              noRooms: document.getElementById('noRooms').value,
-              postal_code: document.getElementById('postal_code').value
-          };
+  const inputs = {
+    newlyConst: document.getElementById('newlyConst').value === "Yes" ? 1 : 0,
+    balcony: document.getElementById('balcony').value === "Yes" ? 1 : 0,
+    lift: document.getElementById('lift').value === "Yes" ? 1 : 0,
+    garden: document.getElementById('garden').value === "Yes" ? 1 : 0,
+    serviceCharge: document.getElementById('serviceCharge').value,
+    livingSpace: document.getElementById('livingSpace').value,
+    noRooms: document.getElementById('noRooms').value,
+    postal_code: document.getElementById('postal_code').value
+  };
 
-            const result = calculateBaseRent(inputs);
-            document.getElementById('result').textContent = result;
-        }
+  const result = calculateBaseRent(inputs);
+  document.getElementById('result').textContent = result;
+}
 
-        window.onload = loadCSV;
-
+window.onload = loadCSV;
 
 // Cache postal code input element
 const postalCodeInput = document.getElementById('postal_code');
@@ -577,21 +800,17 @@ postalCodeInput.addEventListener('change', () => {
 });
 
 // Function to highlight shape by postal code
-// Function to highlight shape by postal code
 const highlightShapeByPostalCode = (postalCode) => {
-  // Check if allLayers is populated
   if (!allLayers || allLayers.length === 0) {
     console.warn('No layers available to search.');
     return;
   }
 
-  // Find the matching layer by postal code
   const matchingLayer = allLayers.find(layer => {
     const feature = layer.feature;
     return feature && feature.properties && String(feature.properties.plz).trim() === String(postalCode).trim();
   });
 
-  // Highlight the matching layer if found
   if (matchingLayer) {
     highlightShape(matchingLayer);
   } else {
