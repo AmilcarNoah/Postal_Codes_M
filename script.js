@@ -3,7 +3,7 @@ const map = L.map('map', {
   center: [48.1552, 11.5650],
   zoom: 11.60,
   minZoom: 7,
-  maxZoom: 19,
+  maxZoom: 18,
   zoomSnap: 0.05
 });
 
