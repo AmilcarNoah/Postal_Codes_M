@@ -678,7 +678,7 @@ const toggleTrainSymbolVisibility = (isVisible) => {
 const loadData = () => {
   loadGeoJSON('postal_codes_final.geojson', loadDistrictData);
   loadGeoJSON('Train_network.geojson', loadTrainNetworkLayer);
-  loadGeoJSON('Transport.geojson.geojson', loadBusStopsLayer);
+  loadGeoJSON('Transport.geojson', loadBusStopsLayer);
 };
 
 // Initialize
